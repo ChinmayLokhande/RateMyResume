@@ -1,0 +1,32 @@
+# Environments
+.venv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment Variables (Keep secrets out of version control)
+.env
+.env.local
+.env.*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Databases (if you use local SQLite for testing)
+*.sqlite
+*.sqlite3
+*.db
