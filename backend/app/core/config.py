@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
 # backend/app/core/config.py -> project root is three folders up
-ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -25,6 +26,14 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
 
+    keycloak_url: str = "http://localhost:8080"
+    keycloak_realm: str = "ratemyresume"
+    keycloak_api_audience: str = "ratemyresume-api"
+
+    storage_dir: Path = PROJECT_ROOT / "storage"
+    max_upload_bytes: int = 10 * 1024 * 1024
+    max_bulk_files: int = 20
+
     @property
     def database_url(self) -> URL:
         # URL.create handles special characters in the password safely
@@ -36,6 +45,14 @@ class Settings(BaseSettings):
             port=self.postgres_port,
             database=self.postgres_db,
         )
+
+    @property
+    def keycloak_issuer(self) -> str:
+        return f"{self.keycloak_url}/realms/{self.keycloak_realm}"
+
+    @property
+    def keycloak_jwks_url(self) -> str:
+        return f"{self.keycloak_issuer}/protocol/openid-connect/certs"
 
 
 @lru_cache

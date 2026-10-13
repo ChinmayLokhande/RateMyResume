@@ -1,32 +1,53 @@
-# Environments
+# Secrets: never commit
+.env
+.env.*
+!.env.example
+
+# Uploaded resumes and any real resume files (personal data)
+storage/*
+!storage/.gitkeep
+*.pdf
+*.docx
+
+# Python
 .venv/
 venv/
 env/
-
-# Python Cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 .Python
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# Environment Variables (Keep secrets out of version control)
-.env
-.env.local
-.env.*
+# Node / Next.js (for the frontend later)
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Local databases and data
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs and temp files
+*.log
+tmp/
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
 
-# IDEs and Editors
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Databases (if you use local SQLite for testing)
-*.sqlite
-*.sqlite3
-*.db
+keycloak/

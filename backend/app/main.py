@@ -1,5 +1,4 @@
 import logging
-
 import redis
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -7,10 +6,19 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import engine
+from app.api.v1 import admin, me, resume
+
+
 
 logger = logging.getLogger(__name__)
 
+# 1. Define the app instance FIRST
 app = FastAPI(title="RateMyResume API", version="0.1.0")
+
+# 2. THEN include your routers
+app.include_router(me.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
+app.include_router(resume.router, prefix="/api/v1")
 
 
 def _check_database() -> str:
