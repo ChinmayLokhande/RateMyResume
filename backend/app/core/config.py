@@ -17,22 +17,33 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
 
+    # PostgreSQL
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str
     postgres_user: str
     postgres_password: SecretStr
 
+    # Redis / Celery
     redis_host: str = "localhost"
     redis_port: int = 6379
+    redis_broker_db: int = 0
 
+    # Keycloak
     keycloak_url: str = "http://localhost:8080"
     keycloak_realm: str = "ratemyresume"
     keycloak_api_audience: str = "ratemyresume-api"
 
+    # Uploads and storage
     storage_dir: Path = PROJECT_ROOT / "storage"
     max_upload_bytes: int = 10 * 1024 * 1024
     max_bulk_files: int = 20
+
+    # Local LLM (set LLM_ENABLED=false in .env for regex-only mode)
+    llm_enabled: bool = True
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2:3b"
+    ollama_timeout_seconds: float = 120.0
 
     @property
     def database_url(self) -> URL:
@@ -53,6 +64,10 @@ class Settings(BaseSettings):
     @property
     def keycloak_jwks_url(self) -> str:
         return f"{self.keycloak_issuer}/protocol/openid-connect/certs"
+
+    @property
+    def celery_broker_url(self) -> str:
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_broker_db}"
 
 
 @lru_cache

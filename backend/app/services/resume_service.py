@@ -45,7 +45,7 @@ def read_limited(fileobj: BinaryIO, limit: int) -> bytes:
     # Ensure pointer is at the start of the file
     if hasattr(fileobj, "seek"):
         fileobj.seek(0)
-        
+
     data = fileobj.read(limit + 1)
     if len(data) > limit:
         raise UploadRejected(f"File exceeds the {limit // (1024 * 1024)} MB limit", 413)
@@ -83,7 +83,7 @@ def _find_existing(db: Session, owner_id: uuid.UUID, file_hash: str) -> uuid.UUI
 
 def ingest_resume(
     db: Session, storage: FileStorage, owner_id: uuid.UUID, filename: str, data: bytes
-) -> uuid.UUID:
+) -> tuple[uuid.UUID, uuid.UUID]:  # CHANGED: returns (resume_id, job_id)
     if not data:
         raise UploadRejected("File is empty", 400)
     mime_type = detect_mime(data)
@@ -107,7 +107,10 @@ def ingest_resume(
         db.add(resume)
         db.flush()  # assigns resume.id
         resume_id = resume.id
-        db.add(ProcessingJob(resume_id=resume_id, job_type="extraction"))
+        job = ProcessingJob(resume_id=resume_id, job_type="extraction")  # CHANGED
+        db.add(job)  # CHANGED
+        db.flush()  # CHANGED: assigns job.id
+        job_id = job.id  # CHANGED
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -120,4 +123,4 @@ def ingest_resume(
         db.rollback()
         storage.delete(storage_key)  # never leave a file without a database record
         raise
-    return resume_id
+    return resume_id, job_id  # CHANGED

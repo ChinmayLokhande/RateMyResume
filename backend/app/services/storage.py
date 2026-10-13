@@ -8,6 +8,7 @@ from app.core.config import get_settings
 class FileStorage(Protocol):
     def save(self, key: str, data: bytes) -> None: ...
     def delete(self, key: str) -> None: ...
+    def read(self, key: str) -> bytes: ...
 
 
 class LocalFileStorage:
@@ -27,6 +28,9 @@ class LocalFileStorage:
 
     def delete(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)
+
+    def read(self, key: str) -> bytes:
+        return self._path(key).read_bytes()
 
 
 @lru_cache
