@@ -2,12 +2,16 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
 
 # Uploaded resumes and any real resume files (personal data)
 storage/*
 !storage/.gitkeep
 *.pdf
 *.docx
+rmr-samples/
 
 # Python
 .venv/
@@ -21,23 +25,33 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
+celerybeat-schedule
 
-# Node / Next.js (for the frontend later)
+# Node / Next.js
 node_modules/
 .next/
 out/
 build/
 dist/
 *.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-error.log*
+coverage/
 
 # Local databases and data
 *.sqlite
 *.sqlite3
 *.db
+dump.rdb
 
 # Logs and temp files
 *.log
 tmp/
+
+# Downloaded Keycloak distribution (not our code). Anchored so infra/keycloak/ stays tracked
+/keycloak/
+/keycloak-[0-9]*/
 
 # macOS
 .DS_Store
@@ -49,5 +63,3 @@ tmp/
 .idea/
 *.swp
 *.swo
-
-keycloak/

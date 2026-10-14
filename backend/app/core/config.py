@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.2:3b"
     ollama_timeout_seconds: float = 120.0
 
+    cors_origins: list[str] = ["http://localhost:3000"]
+
     @property
     def database_url(self) -> URL:
         # URL.create handles special characters in the password safely

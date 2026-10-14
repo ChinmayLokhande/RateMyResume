@@ -9,6 +9,8 @@ from app.api.v1 import admin, analysis, me, resume
 from app.core.config import get_settings
 from app.db.session import engine
 
+from fastapi.middleware.cors import CORSMiddleware
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="RateMyResume API", version="0.1.0")
@@ -17,6 +19,14 @@ app.include_router(me.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(resume.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
 def _check_database() -> str:
