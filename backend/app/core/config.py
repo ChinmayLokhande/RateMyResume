@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     )
 
     app_env: str = "development"
+    cors_origins: list[str] = ["http://localhost:3000"]
 
     # PostgreSQL
     postgres_host: str = "localhost"
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
     keycloak_url: str = "http://localhost:8080"
     keycloak_realm: str = "ratemyresume"
     keycloak_api_audience: str = "ratemyresume-api"
+    keycloak_admin_client_id: str = "ratemyresume-admin-api"
+    keycloak_admin_client_secret: SecretStr | None = None  # server-side only
 
     # Uploads and storage
     storage_dir: Path = PROJECT_ROOT / "storage"
@@ -44,8 +47,6 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:3b"
     ollama_timeout_seconds: float = 120.0
-
-    cors_origins: list[str] = ["http://localhost:3000"]
 
     @property
     def database_url(self) -> URL:
