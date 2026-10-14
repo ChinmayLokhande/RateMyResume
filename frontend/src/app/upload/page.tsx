@@ -1,8 +1,10 @@
 "use client";
 
+import { FileText, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Button, buttonClass, Card, PageHeader } from "@/components/ui";
 import { uploadResumes } from "@/lib/resumes";
 import type { UploadItemResult } from "@/types/api";
 
@@ -67,8 +69,8 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-semibold">Upload resumes</h1>
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <PageHeader title="Upload resumes" subtitle="PDF or Word files, up to 20 at a time." />
 
       <div
         onDragOver={(e) => {
@@ -81,21 +83,18 @@ export default function UploadPage() {
           setDragging(false);
           addFiles(e.dataTransfer.files);
         }}
-        className={`rounded-lg border-2 border-dashed p-10 text-center ${
-          dragging ? "border-blue-500 bg-blue-50" : "border-gray-300"
+        className={`rounded-card border-2 border-dashed px-6 py-14 text-center transition ${
+          dragging ? "border-accent bg-accent/5" : "border-line bg-white"
         }`}
       >
-        <p className="text-gray-700">Drag and drop PDF or DOCX files here</p>
-        <p className="mt-1 text-sm text-gray-500">
-          Up to {MAX_FILES} files, 10 MB each
-        </p>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="mt-4 rounded border px-4 py-2 hover:bg-gray-50"
-        >
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+          <UploadCloud size={26} />
+        </span>
+        <p className="mt-4 font-medium">Drag and drop resumes here</p>
+        <p className="mt-1 text-sm text-muted">PDF or DOCX, up to 10 MB each</p>
+        <Button className="mt-5" variant="secondary" onClick={() => inputRef.current?.click()}>
           Choose files
-        </button>
+        </Button>
         <input
           ref={inputRef}
           type="file"
@@ -110,54 +109,52 @@ export default function UploadPage() {
       </div>
 
       {rejected.length > 0 && (
-        <ul className="space-y-1 text-sm text-red-700">
+        <ul className="mt-4 space-y-1 rounded-xl bg-red-50 p-4 text-sm text-red-700">
           {rejected.map((item, i) => (
             <li key={i}>
-              {item.filename}: {item.detail}
+              <strong>{item.filename}</strong>: {item.detail}
             </li>
           ))}
         </ul>
       )}
 
       {files.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-medium">Ready to upload ({files.length})</h2>
-          <ul className="divide-y rounded border">
+        <section className="mt-6 space-y-4">
+          <h2 className="font-semibold">Ready to upload ({files.length})</h2>
+          <Card className="divide-y divide-black/5">
             {files.map((file) => (
-              <li key={`${file.name}-${file.size}`} className="flex items-center gap-3 px-3 py-2 text-sm">
+              <div key={`${file.name}-${file.size}`} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <FileText size={18} className="shrink-0 text-muted" />
                 <span className="flex-1 truncate">{file.name}</span>
-                <span className="text-gray-500">{(file.size / 1024).toFixed(0)} KB</span>
+                <span className="text-muted">{(file.size / 1024).toFixed(0)} KB</span>
                 <button
                   onClick={() => setFiles(files.filter((f) => f !== file))}
                   disabled={uploading}
-                  className="text-gray-500 hover:text-red-600"
+                  className="rounded-full p-1.5 text-muted hover:bg-black/[0.05] hover:text-red-600"
                   aria-label={`Remove ${file.name}`}
                 >
-                  ✕
+                  <X size={15} />
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-          <button
-            onClick={submit}
-            disabled={uploading}
-            className="rounded bg-gray-900 px-4 py-2 text-white disabled:opacity-50"
-          >
+          </Card>
+          <Button onClick={submit} disabled={uploading}>
             {uploading ? "Uploading…" : `Upload ${files.length} file${files.length > 1 ? "s" : ""}`}
-          </button>
+          </Button>
         </section>
       )}
 
-      {error && <p className="text-red-600">Upload failed: {error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-red-700">Upload failed: {error}</p>}
 
       {results && (
-        <section className="space-y-3">
-          <h2 className="font-medium">Results</h2>
-          <ul className="divide-y rounded border">
+        <section className="mt-6 space-y-4">
+          <h2 className="font-semibold">Results</h2>
+          <Card className="divide-y divide-black/5">
             {results.map((item, i) => (
-              <li key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
+              <div key={i} className="flex items-center gap-3 px-4 py-3 text-sm">
+                <FileText size={18} className="shrink-0 text-muted" />
                 <span className="flex-1 truncate">{item.filename}</span>
-                {item.detail && <span className="text-gray-500">{item.detail}</span>}
+                {item.detail && <span className="hidden text-muted sm:inline">{item.detail}</span>}
                 <StatusBadge
                   status={
                     item.status === "accepted"
@@ -167,11 +164,11 @@ export default function UploadPage() {
                         : "failed"
                   }
                 />
-                <span className="w-20 text-right capitalize">{item.status}</span>
-              </li>
+                <span className="w-20 text-right capitalize text-muted">{item.status}</span>
+              </div>
             ))}
-          </ul>
-          <Link href="/resumes" className="inline-block text-blue-700 underline">
+          </Card>
+          <Link href="/resumes" className={buttonClass("secondary")}>
             View my resumes
           </Link>
         </section>

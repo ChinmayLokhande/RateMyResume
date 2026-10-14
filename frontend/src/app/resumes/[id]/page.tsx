@@ -1,9 +1,12 @@
 "use client";
 
+import { AlertCircle, ArrowLeft, Mail, MapPin, Phone, ScanText, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { ScoreRing } from "@/components/ScoreRing";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Avatar, Button, Card, Skeleton } from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { analyzeResume, getAnalysis, getResume } from "@/lib/resumes";
 import type { AnalysisResponse, ResumeDetail } from "@/types/api";
@@ -17,42 +20,49 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong";
 }
 
-function Field({ label, value }: { label: string; value: string | null }) {
+function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value: string | null }) {
   return (
-    <div>
-      <dt className="text-xs uppercase text-gray-500">{label}</dt>
-      <dd>{value ?? "—"}</dd>
-    </div>
-  );
-}
-
-function BulletList({ title, items }: { title: string; items: string[] }) {
-  if (items.length === 0) return null;
-  return (
-    <div>
-      <h4 className="font-medium">{title}</h4>
-      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-        {items.map((item, i) => (
-          <li key={i}>{item}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Chips({ title, items }: { title: string; items: string[] }) {
-  if (items.length === 0) return null;
-  return (
-    <div>
-      <h4 className="font-medium">{title}</h4>
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <span key={item} className="rounded bg-gray-100 px-2 py-0.5 text-xs">
-            {item}
-          </span>
-        ))}
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 text-muted">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-xs text-muted">{label}</div>
+        <div className="break-words text-sm">{value ?? "—"}</div>
       </div>
     </div>
+  );
+}
+
+function Chips({ items }: { items: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <span key={item} className="rounded-full bg-black/[0.05] px-2.5 py-1 text-xs">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="mt-2 text-sm text-ink/80">{children}</div>
+    </div>
+  );
+}
+
+function Bullets({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-1.5">
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2">
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -104,163 +114,214 @@ export default function ResumeDetailPage() {
     }
   }
 
+  const back = (
+    <Link href="/resumes" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+      <ArrowLeft size={15} />
+      All resumes
+    </Link>
+  );
+
   if (error) {
     return (
-      <main className="mx-auto max-w-4xl space-y-3 p-6">
-        <Link href="/resumes" className="text-blue-700 hover:underline">
-          ← Back to resumes
-        </Link>
-        <p className="rounded bg-red-50 p-3 text-red-700">{error}</p>
+      <main className="mx-auto max-w-6xl space-y-4 px-6 py-10">
+        {back}
+        <p className="rounded-xl bg-red-50 p-3 text-red-700">{error}</p>
       </main>
     );
   }
-  if (!resume) return <p className="p-6 text-gray-500">Loading…</p>;
+  if (!resume) {
+    return (
+      <main className="mx-auto max-w-6xl space-y-4 px-6 py-10">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </main>
+    );
+  }
 
   const canAnalyze =
     resume.extraction_status === "completed" && !ACTIVE.includes(resume.analysis_status);
   const detail = analysis?.detailed_result;
   const narrative = detail?.narrative ?? null;
+  const displayName = resume.candidate_name ?? resume.original_filename;
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <Link href="/resumes" className="text-blue-700 hover:underline">
-        ← Back to resumes
-      </Link>
+    <main className="mx-auto max-w-6xl px-6 py-10">
+      {back}
 
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">{resume.candidate_name ?? resume.original_filename}</h1>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-          <span>{resume.original_filename}</span>
-          <span>·</span>
-          <span>Uploaded {new Date(resume.uploaded_at).toLocaleString()}</span>
+      <Card className="mt-4 flex flex-wrap items-center gap-5 p-6">
+        <Avatar name={displayName} size="lg" />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{displayName}</h1>
+          <p className="mt-0.5 truncate text-sm text-muted">
+            {resume.original_filename} · uploaded{" "}
+            {new Date(resume.uploaded_at).toLocaleDateString(undefined, {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="flex gap-2">
           <StatusBadge status={resume.extraction_status} />
           <StatusBadge status={resume.analysis_status} />
         </div>
-        {resume.error_message && <p className="text-sm text-gray-600">{resume.error_message}</p>}
-      </header>
+        {resume.error_message && <p className="w-full text-sm text-muted">{resume.error_message}</p>}
+      </Card>
 
-      <section className="space-y-3 rounded border p-4">
-        <h2 className="font-medium">Extracted details</h2>
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <Field label="Email" value={resume.email} />
-          <Field label="Mobile" value={resume.mobile} />
-          <Field label="Location" value={resume.location} />
-          <Field
-            label="Read by"
-            value={
-              resume.extraction_method === "ocr"
-                ? "OCR (scanned document)"
-                : resume.extraction_method === "native_text"
-                  ? "Text extraction"
-                  : null
-            }
-          />
-        </dl>
-        <Chips title="Skills" items={resume.skills} />
-      </section>
-
-      <section className="space-y-4 rounded border p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">Analysis</h2>
-          <button
-            onClick={runAnalysis}
-            disabled={!canAnalyze}
-            className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40"
-          >
-            {ACTIVE.includes(resume.analysis_status)
-              ? "Analysis running…"
-              : analysis
-                ? "Re-run analysis"
-                : "Run analysis"}
-          </button>
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6">
+          <Card className="space-y-4 p-6">
+            <h2 className="font-semibold">Details</h2>
+            <InfoRow icon={<Mail size={16} />} label="Email" value={resume.email} />
+            <InfoRow icon={<Phone size={16} />} label="Mobile" value={resume.mobile} />
+            <InfoRow icon={<MapPin size={16} />} label="Location" value={resume.location} />
+            <InfoRow
+              icon={<ScanText size={16} />}
+              label="Read by"
+              value={
+                resume.extraction_method === "ocr"
+                  ? "OCR (scanned document)"
+                  : resume.extraction_method === "native_text"
+                    ? "Text extraction"
+                    : null
+              }
+            />
+          </Card>
+          {resume.skills.length > 0 && (
+            <Card className="space-y-3 p-6">
+              <h2 className="font-semibold">Skills</h2>
+              <Chips items={resume.skills} />
+            </Card>
+          )}
         </div>
-        {actionError && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{actionError}</p>}
-        {resume.analysis_status === "failed" && (
-          <p className="rounded bg-amber-50 p-2 text-sm text-amber-800">
-            The latest analysis run failed.
-            {analysis ? " Showing the previous result." : " You can try again."}
-          </p>
-        )}
 
-        {!analysis && resume.extraction_status !== "completed" && (
-          <p className="text-sm text-gray-500">Analysis becomes available once extraction finishes.</p>
-        )}
-        {!analysis && resume.extraction_status === "completed" && !ACTIVE.includes(resume.analysis_status) && (
-          <p className="text-sm text-gray-500">No analysis yet.</p>
-        )}
-
-        {analysis && detail && (
-          <div className="space-y-5">
-            <div>
-              <div className="text-4xl font-semibold">
-                {analysis.score ?? "—"}
-                <span className="text-lg font-normal text-gray-500"> / {detail.rubric.max}</span>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">{detail.advisory_notice}</p>
+        <div className="space-y-6 lg:col-span-2">
+          <Card className="space-y-6 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Sparkles size={18} className="text-accent" />
+                Analysis
+              </h2>
+              <Button variant="secondary" onClick={runAnalysis} disabled={!canAnalyze}>
+                {ACTIVE.includes(resume.analysis_status)
+                  ? "Analysis running…"
+                  : analysis
+                    ? "Re-run analysis"
+                    : "Run analysis"}
+              </Button>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="font-medium">Score breakdown</h3>
-              {detail.rubric.criteria.map((criterion) => (
-                <div key={criterion.key}>
-                  <div className="flex justify-between text-sm">
-                    <span>{criterion.label}</span>
-                    <span>
-                      {criterion.points} / {criterion.max_points}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-2 rounded bg-gray-100">
-                    <div
-                      className="h-2 rounded bg-gray-800"
-                      style={{ width: `${(criterion.points / criterion.max_points) * 100}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">{criterion.explanation}</p>
-                </div>
-              ))}
-            </div>
-
-            <BulletList title="Missing or unclear" items={detail.missing_or_unclear} />
-
-            {narrative ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium">Summary</h3>
-                  <p className="mt-1 text-sm">{narrative.professional_summary}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium">Experience</h3>
-                  <p className="mt-1 text-sm">{narrative.experience_summary}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium">Education</h3>
-                  <p className="mt-1 text-sm">{narrative.education_summary}</p>
-                </div>
-                <Chips title="Technical skills" items={narrative.technical_skills} />
-                <Chips title="Non-technical skills" items={narrative.non_technical_skills} />
-                <BulletList title="Strengths" items={narrative.strengths} />
-                <BulletList title="Areas to improve" items={narrative.improvements} />
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">
-                A written assessment was not generated for this analysis (score only).
+            {actionError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
+            {resume.analysis_status === "failed" && (
+              <p className="flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+                <AlertCircle size={16} />
+                The latest analysis run failed.
+                {analysis ? " Showing the previous result." : " You can try again."}
               </p>
             )}
 
-            <p className="text-xs text-gray-400">
-              Rubric {analysis.rubric_version} · prompt {analysis.prompt_version} · model{" "}
-              {analysis.model_name} · {new Date(analysis.created_at).toLocaleString()}
-            </p>
-          </div>
-        )}
-      </section>
+            {!analysis && resume.extraction_status !== "completed" && (
+              <p className="text-sm text-muted">Analysis becomes available once extraction finishes.</p>
+            )}
+            {!analysis &&
+              resume.extraction_status === "completed" &&
+              !ACTIVE.includes(resume.analysis_status) && (
+                <p className="text-sm text-muted">No analysis yet. Click “Run analysis” to create one.</p>
+              )}
 
-      <details className="rounded border p-4">
-        <summary className="cursor-pointer font-medium">Extracted text</summary>
-        <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap text-xs text-gray-700">
-          {resume.extracted_text ?? "No text extracted."}
-        </pre>
-      </details>
+            {analysis && detail && (
+              <>
+                <div className="flex flex-wrap items-center gap-8">
+                  <ScoreRing score={analysis.score} max={detail.rubric.max} />
+                  <div className="min-w-[14rem] flex-1 space-y-3">
+                    {detail.rubric.criteria.map((criterion) => (
+                      <div key={criterion.key} title={criterion.explanation}>
+                        <div className="flex justify-between text-sm">
+                          <span>{criterion.label}</span>
+                          <span className="text-muted">
+                            {criterion.points} / {criterion.max_points}
+                          </span>
+                        </div>
+                        <div className="mt-1 h-1.5 rounded-full bg-black/[0.06]">
+                          <div
+                            className="h-1.5 rounded-full bg-gradient-to-r from-accent to-violet-500"
+                            style={{ width: `${(criterion.points / criterion.max_points) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-muted">{detail.advisory_notice}</p>
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold">How the score was calculated</h3>
+                  <ul className="space-y-1.5 text-sm text-ink/80">
+                    {detail.rubric.criteria.map((criterion) => (
+                      <li key={criterion.key}>
+                        <span className="font-medium text-ink">{criterion.label}:</span>{" "}
+                        {criterion.explanation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {detail.missing_or_unclear.length > 0 && (
+                  <Section title="Missing or unclear">
+                    <Bullets items={detail.missing_or_unclear} />
+                  </Section>
+                )}
+
+                {narrative ? (
+                  <div className="space-y-5 border-t border-black/5 pt-6">
+                    <Section title="Summary">{narrative.professional_summary}</Section>
+                    <Section title="Experience">{narrative.experience_summary}</Section>
+                    <Section title="Education">{narrative.education_summary}</Section>
+                    {narrative.technical_skills.length > 0 && (
+                      <Section title="Technical skills">
+                        <Chips items={narrative.technical_skills} />
+                      </Section>
+                    )}
+                    {narrative.non_technical_skills.length > 0 && (
+                      <Section title="Non-technical skills">
+                        <Chips items={narrative.non_technical_skills} />
+                      </Section>
+                    )}
+                    {narrative.strengths.length > 0 && (
+                      <Section title="Strengths">
+                        <Bullets items={narrative.strengths} />
+                      </Section>
+                    )}
+                    {narrative.improvements.length > 0 && (
+                      <Section title="Areas to improve">
+                        <Bullets items={narrative.improvements} />
+                      </Section>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted">
+                    A written assessment was not generated for this analysis (score only).
+                  </p>
+                )}
+
+                <p className="text-xs text-muted/80">
+                  Rubric {analysis.rubric_version} · prompt {analysis.prompt_version} · model{" "}
+                  {analysis.model_name} · {new Date(analysis.created_at).toLocaleString()}
+                </p>
+              </>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <details>
+              <summary className="cursor-pointer font-semibold">Extracted text</summary>
+              <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-canvas p-4 text-xs text-ink/80">
+                {resume.extracted_text ?? "No text extracted."}
+              </pre>
+            </details>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,7 +1,18 @@
 "use client";
+
+import { ChevronDown, ChevronUp, Inbox, RotateCw, Search, Trash2, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import {
+  Avatar,
+  buttonClass,
+  Card,
+  EmptyState,
+  inputClass,
+  PageHeader,
+  Skeleton,
+} from "@/components/ui";
 import { ApiError } from "@/lib/api";
 import { deleteResume, listResumes, retryResume } from "@/lib/resumes";
 import type { ResumeListResponse } from "@/types/api";
@@ -18,7 +29,15 @@ const COLUMNS: { label: string; sort?: SortKey }[] = [
   { label: "Uploaded", sort: "uploaded_at" },
   { label: "Processing", sort: "extraction_status" },
   { label: "Analysis" },
-  { label: "Actions" },
+  { label: "" },
+];
+
+const FILTERS = [
+  { value: "", label: "All" },
+  { value: "completed", label: "Completed" },
+  { value: "processing", label: "Processing" },
+  { value: "queued", label: "Queued" },
+  { value: "failed", label: "Failed" },
 ];
 
 function describeError(error: unknown): string {
@@ -40,7 +59,6 @@ export default function ResumesPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const latest = useRef(0);
 
-  // Wait 300 ms after typing stops before searching
   useEffect(() => {
     const timer = setTimeout(() => {
       setQ(input.trim());
@@ -65,7 +83,7 @@ export default function ResumesPage() {
     const request = ++latest.current;
     return listResumes(query)
       .then((result) => {
-        if (request !== latest.current) return; // a newer request replaced this one
+        if (request !== latest.current) return;
         setData(result);
         setError(null);
       })
@@ -106,58 +124,100 @@ export default function ResumesPage() {
     }
   }
 
-  return (
-    <main className="mx-auto max-w-6xl space-y-4 p-6">
-      <h1 className="text-2xl font-semibold">My resumes</h1>
+  const filtered = Boolean(q || status);
 
-      <div className="flex flex-wrap gap-3">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Search by name or email"
-          maxLength={100}
-          className="w-72 rounded border px-3 py-2"
-          aria-label="Search by name or email"
-        />
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-          className="rounded border px-3 py-2"
-          aria-label="Filter by processing status"
-        >
-          <option value="">All statuses</option>
-          <option value="queued">Queued</option>
-          <option value="processing">Processing</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-        </select>
+  return (
+    <main className="mx-auto max-w-7xl px-6 py-10">
+      <PageHeader
+        title="Resumes"
+        subtitle="Everything you have uploaded, with live processing status."
+        action={
+          <Link href="/upload" className={buttonClass("primary")}>
+            <UploadCloud size={16} />
+            Upload
+          </Link>
+        }
+      />
+
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-xs">
+          <Search size={16} className="pointer-events-none absolute left-3.5 top-3 text-muted" />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Search by name or email"
+            maxLength={100}
+            aria-label="Search by name or email"
+            className={`${inputClass} pl-10`}
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by processing status">
+          {FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              aria-pressed={status === filter.value}
+              onClick={() => {
+                setStatus(filter.value);
+                setPage(1);
+              }}
+              className={`rounded-full px-3.5 py-1.5 text-sm transition ${
+                status === filter.value
+                  ? "bg-ink text-white"
+                  : "bg-white text-muted ring-1 ring-inset ring-line hover:text-ink"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {error && <p className="rounded bg-red-50 p-3 text-red-700">{error}</p>}
-      {actionError && <p className="rounded bg-red-50 p-3 text-red-700">{actionError}</p>}
-      {!data && !error && <p className="text-gray-500">Loading…</p>}
+      {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-red-700">{error}</p>}
+      {actionError && <p className="mb-4 rounded-xl bg-red-50 p-3 text-red-700">{actionError}</p>}
+
+      {!data && !error && (
+        <Card className="space-y-3 p-5">
+          {[0, 1, 2, 3].map((n) => (
+            <Skeleton key={n} className="h-12 w-full" />
+          ))}
+        </Card>
+      )}
 
       {data && data.items.length === 0 && (
-        <p className="rounded border border-dashed p-8 text-center text-gray-500">
-          {q || status ? "No resumes match your filters." : "No resumes yet. Upload one to get started."}
-        </p>
+        <EmptyState
+          icon={<Inbox size={26} />}
+          title={filtered ? "No resumes match" : "No resumes yet"}
+          text={
+            filtered
+              ? "Try a different search or filter."
+              : "Upload your first resume and it will appear here as it is processed."
+          }
+          action={
+            !filtered && (
+              <Link href="/upload" className={buttonClass("primary")}>
+                Upload resumes
+              </Link>
+            )
+          }
+        />
       )}
 
       {data && data.items.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded border">
+          <Card className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {COLUMNS.map((column) => (
-                    <th key={column.label} className="whitespace-nowrap px-3 py-2 font-medium">
+              <thead>
+                <tr className="border-b border-black/5 text-xs uppercase tracking-wide text-muted">
+                  {COLUMNS.map((column, i) => (
+                    <th key={i} className="whitespace-nowrap px-4 py-3 font-medium">
                       {column.sort ? (
-                        <button onClick={() => toggleSort(column.sort!)} className="hover:underline">
+                        <button
+                          onClick={() => toggleSort(column.sort!)}
+                          className="inline-flex items-center gap-1 uppercase hover:text-ink"
+                        >
                           {column.label}
-                          {sort === column.sort ? (direction === "asc" ? " ▲" : " ▼") : ""}
+                          {sort === column.sort &&
+                            (direction === "asc" ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
                         </button>
                       ) : (
                         column.label
@@ -166,48 +226,69 @@ export default function ResumesPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-black/5">
                 {data.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-3 py-2">
-                      <Link
-                        href={`/resumes/${item.id}`}
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {item.candidate_name ?? item.original_filename}
-                      </Link>
-                      <div className="max-w-[14rem] truncate text-xs text-gray-500">
-                        {item.original_filename}
+                  <tr key={item.id} className="transition hover:bg-black/[0.02]">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={item.candidate_name ?? item.original_filename} />
+                        <div className="min-w-0">
+                          <Link
+                            href={`/resumes/${item.id}`}
+                            className="font-medium hover:text-accent hover:underline"
+                          >
+                            {item.candidate_name ?? "Unnamed candidate"}
+                          </Link>
+                          <div className="max-w-[13rem] truncate text-xs text-muted">
+                            {item.original_filename}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">{item.email ?? "—"}</td>
-                    <td className="px-3 py-2">{item.mobile ?? "—"}</td>
-                    <td className="px-3 py-2">{item.location ?? "—"}</td>
-                    <td className="max-w-[14rem] px-3 py-2">
-                      {item.skills.length === 0
-                        ? "—"
-                        : item.skills.slice(0, 3).join(", ") +
-                          (item.skills.length > 3 ? ` +${item.skills.length - 3}` : "")}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      {new Date(item.uploaded_at).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge status={item.extraction_status} />
-                      {item.error_message && (
-                        <div className="mt-1 max-w-[12rem] text-xs text-gray-500">{item.error_message}</div>
+                    <td className="px-4 py-3">{item.email ?? "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{item.mobile ?? "—"}</td>
+                    <td className="px-4 py-3">{item.location ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {item.skills.length === 0 ? (
+                        "—"
+                      ) : (
+                        <div className="flex max-w-[16rem] flex-wrap gap-1">
+                          {item.skills.slice(0, 3).map((skill) => (
+                            <span key={skill} className="rounded-full bg-black/[0.05] px-2 py-0.5 text-xs">
+                              {skill}
+                            </span>
+                          ))}
+                          {item.skills.length > 3 && (
+                            <span className="px-1 text-xs text-muted">+{item.skills.length - 3}</span>
+                          )}
+                        </div>
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-4 py-3 text-muted">
+                      {new Date(item.uploaded_at).toLocaleDateString(undefined, {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={item.extraction_status} />
+                      {item.error_message && (
+                        <div className="mt-1 max-w-[12rem] text-xs text-muted">{item.error_message}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <StatusBadge status={item.analysis_status} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       {item.extraction_status === "failed" && (
                         <button
-                          onClick={() => runAction(() => retryResume(item.id))}
-                          className="mr-3 text-blue-700 hover:underline"
+                          onClick={() => void runAction(() => retryResume(item.id))}
+                          title="Retry processing"
+                          aria-label={`Retry ${item.original_filename}`}
+                          className="rounded-full p-2 text-accent hover:bg-accent/10"
                         >
-                          Retry
+                          <RotateCw size={16} />
                         </button>
                       )}
                       <button
@@ -215,33 +296,35 @@ export default function ResumesPage() {
                           if (window.confirm(`Delete ${item.original_filename}? This cannot be undone.`))
                             void runAction(() => deleteResume(item.id));
                         }}
-                        className="text-red-700 hover:underline"
+                        title="Delete"
+                        aria-label={`Delete ${item.original_filename}`}
+                        className="rounded-full p-2 text-muted hover:bg-red-50 hover:text-red-600"
                       >
-                        Delete
+                        <Trash2 size={16} />
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <span className="text-muted">
               {data.total} resume{data.total === 1 ? "" : "s"} · page {data.page} of {data.total_pages}
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage(page - 1)}
                 disabled={page <= 1}
-                className="rounded border px-3 py-1.5 disabled:opacity-40"
+                className={buttonClass("secondary")}
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(page + 1)}
                 disabled={page >= data.total_pages}
-                className="rounded border px-3 py-1.5 disabled:opacity-40"
+                className={buttonClass("secondary")}
               >
                 Next
               </button>
