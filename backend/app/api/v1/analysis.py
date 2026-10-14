@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import CurrentUser, require_role
 from app.core.cache import analysis_key, cache_delete, cache_get, cache_set
 from app.core.config import get_settings
+from app.core.rate_limit import rate_limit
 from app.db.session import get_db
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.resume import ResumeStatus
@@ -24,6 +25,7 @@ NOT_FOUND = HTTPException(status_code=404, detail="Resume not found")
 def analyze_resume(
     resume_id: uuid.UUID,
     user: CurrentUser = Depends(require_role("user")),
+    _limit: None = Depends(rate_limit("analyze", 10, 60)),
     db: Session = Depends(get_db),
 ) -> ResumeStatus:
     profile = get_or_create_profile(db, user)

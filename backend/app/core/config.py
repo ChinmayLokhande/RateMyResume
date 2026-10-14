@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     dashboard_cache_ttl_seconds: int = 30
     analysis_cache_ttl_seconds: int = 600
 
+    # Request limits and rate limiting
+    max_upload_request_bytes: int = 210 * 1024 * 1024  # 20 files x 10 MB plus form overhead
+    max_json_request_bytes: int = 1024 * 1024
+    rate_limit_enabled: bool = True
+
     # Local LLM (set LLM_ENABLED=false in .env for regex-only mode)
     llm_enabled: bool = True
     ollama_base_url: str = "http://localhost:11434"

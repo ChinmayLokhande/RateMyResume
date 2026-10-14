@@ -2,13 +2,12 @@ import math
 import uuid
 from typing import Literal
 
-from app.services.cache_invalidation import invalidate_analysis, invalidate_dashboard
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import CurrentUser, require_role
 from app.core.config import get_settings
+from app.core.rate_limit import rate_limit
 from app.db.session import get_db
 from app.schemas.resume import (
     BulkUploadResponse,
@@ -18,6 +17,7 @@ from app.schemas.resume import (
     ResumeSummary,
     UploadItemResult,
 )
+from app.services.cache_invalidation import invalidate_analysis, invalidate_dashboard
 from app.services.resume_queries import (
     ResumeNotFound,
     RetryNotAllowed,
@@ -56,6 +56,7 @@ def _store(db: Session, owner_id: uuid.UUID, upload: UploadFile) -> uuid.UUID:
 def upload_resume(
     file: UploadFile,
     user: CurrentUser = Depends(require_role("user")),
+    _limit: None = Depends(rate_limit("upload", 30, 60)),
     db: Session = Depends(get_db),
 ) -> UploadItemResult:
     profile = get_or_create_profile(db, user)
@@ -77,6 +78,7 @@ def upload_resume(
 def upload_resumes_bulk(
     files: list[UploadFile],
     user: CurrentUser = Depends(require_role("user")),
+    _limit: None = Depends(rate_limit("upload", 30, 60)),
     db: Session = Depends(get_db),
 ) -> BulkUploadResponse:
     max_files = get_settings().max_bulk_files
@@ -165,6 +167,7 @@ def get_resume_status(
 def retry_resume(
     resume_id: uuid.UUID,
     user: CurrentUser = Depends(require_role("user")),
+    _limit: None = Depends(rate_limit("retry", 20, 60)),
     db: Session = Depends(get_db),
 ) -> ResumeStatus:
     profile = get_or_create_profile(db, user)
@@ -177,6 +180,7 @@ def retry_resume(
     invalidate_dashboard(profile.id)
     enqueue_extraction(job_id)
     return ResumeStatus.model_validate(get_owned_resume(db, profile.id, resume_id))
+
 
 @router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_resume(

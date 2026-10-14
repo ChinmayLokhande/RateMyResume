@@ -8,6 +8,8 @@ from app.schemas.admin import AdminUserListResponse, AdminUserOut, CreateUserReq
 from app.services import keycloak_admin
 from app.services.keycloak_admin import DirectoryUser, KeycloakAdminError
 
+from app.core.rate_limit import rate_limit
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -43,7 +45,9 @@ def list_users(
 
 @router.post("/users", response_model=AdminUserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
-    body: CreateUserRequest, admin: CurrentUser = Depends(require_role("admin"))
+    body: CreateUserRequest,
+    admin: CurrentUser = Depends(require_role("admin")),
+    _limit: None = Depends(rate_limit("create-user", 10, 60)),
 ) -> AdminUserOut:
     try:
         user = keycloak_admin.create_user(

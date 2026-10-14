@@ -66,3 +66,19 @@ def cache_delete(*keys: str) -> None:
         client.delete(*keys)
     except redis.RedisError:
         logger.warning("Cache delete failed")
+
+def rate_limit_hit(key: str, window_seconds: int) -> tuple[int, int] | None:
+    """Counts one call. Returns (calls so far, seconds left in the window), or None if Redis fails."""
+    client = _client()
+    if client is None:
+        return None
+    try:
+        count = int(client.incr(key))
+        seconds_left = int(client.ttl(key))
+        if seconds_left < 0:  # first call, or a key that lost its expiry
+            client.expire(key, window_seconds)
+            seconds_left = window_seconds
+        return count, seconds_left
+    except (redis.RedisError, ValueError):
+        logger.warning("Rate limit check failed")
+        return None
