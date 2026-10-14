@@ -5,7 +5,7 @@ from app.core.config import get_settings
 celery_app = Celery(
     "ratemyresume",
     broker=get_settings().celery_broker_url,
-    include=["app.tasks.extraction_tasks"],
+    include=["app.tasks.extraction_tasks", "app.tasks.analysis_tasks"],
 )
 celery_app.conf.update(
     task_serializer="json",

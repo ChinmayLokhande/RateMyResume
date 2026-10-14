@@ -1,0 +1,64 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.auth.security import CurrentUser, require_role
+from app.db.session import get_db
+from app.schemas.analysis import AnalysisResponse
+from app.schemas.resume import ResumeStatus
+from app.services.analysis_queries import AnalysisNotAllowed, get_latest_analysis, queue_analysis_job
+from app.services.resume_queries import ResumeNotFound, get_owned_resume
+from app.services.user_service import get_or_create_profile
+from app.tasks.analysis_tasks import enqueue_analysis
+
+router = APIRouter(prefix="/resumes", tags=["analysis"])
+
+NOT_FOUND = HTTPException(status_code=404, detail="Resume not found")
+
+
+@router.post("/{resume_id}/analyze", response_model=ResumeStatus, status_code=status.HTTP_202_ACCEPTED)
+def analyze_resume(
+    resume_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("user")),
+    db: Session = Depends(get_db),
+) -> ResumeStatus:
+    profile = get_or_create_profile(db, user)
+    try:
+        get_owned_resume(db, profile.id, resume_id)
+        job_id = queue_analysis_job(db, resume_id)
+    except ResumeNotFound:
+        raise NOT_FOUND
+    except AnalysisNotAllowed as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    enqueue_analysis(job_id)
+    return ResumeStatus.model_validate(get_owned_resume(db, profile.id, resume_id))
+
+
+@router.get("/{resume_id}/analysis", response_model=AnalysisResponse)
+def get_analysis(
+    resume_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("user")),
+    db: Session = Depends(get_db),
+) -> AnalysisResponse:
+    profile = get_or_create_profile(db, user)
+    try:
+        resume = get_owned_resume(db, profile.id, resume_id)
+    except ResumeNotFound:
+        raise NOT_FOUND
+    analysis = get_latest_analysis(db, resume_id)
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="No analysis available yet")
+    return AnalysisResponse(
+        id=analysis.id,
+        resume_id=analysis.resume_id,
+        analysis_status=resume.analysis_status,
+        score=analysis.score,
+        summary=analysis.summary,
+        detailed_result=analysis.detailed_result,
+        rubric_version=analysis.rubric_version,
+        prompt_version=analysis.prompt_version,
+        model_name=analysis.model_name,
+        model_version=analysis.model_version,
+        created_at=analysis.created_at,
+    )
