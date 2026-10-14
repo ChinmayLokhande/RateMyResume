@@ -1,9 +1,12 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.auth.security import CurrentUser, require_role
+from app.core.cache import analysis_key, cache_delete, cache_get, cache_set
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.resume import ResumeStatus
@@ -43,13 +46,23 @@ def get_analysis(
 ) -> AnalysisResponse:
     profile = get_or_create_profile(db, user)
     try:
+        # Authorization always goes to the database; the cache is never trusted for access control
         resume = get_owned_resume(db, profile.id, resume_id)
     except ResumeNotFound:
         raise NOT_FOUND
+
+    key = analysis_key(profile.id, resume_id)
+    cached = cache_get(key)
+    if isinstance(cached, dict):
+        try:
+            return AnalysisResponse(**cached, analysis_status=resume.analysis_status)
+        except ValidationError:
+            cache_delete(key)  # unusable entry: drop it and fall through to the database
+
     analysis = get_latest_analysis(db, resume_id)
     if analysis is None:
         raise HTTPException(status_code=404, detail="No analysis available yet")
-    return AnalysisResponse(
+    response = AnalysisResponse(
         id=analysis.id,
         resume_id=analysis.resume_id,
         analysis_status=resume.analysis_status,
@@ -62,3 +75,10 @@ def get_analysis(
         model_version=analysis.model_version,
         created_at=analysis.created_at,
     )
+    # analysis_status changes independently, so it is added fresh on every read
+    cache_set(
+        key,
+        response.model_dump(mode="json", exclude={"analysis_status"}),
+        get_settings().analysis_cache_ttl_seconds,
+    )
+    return response

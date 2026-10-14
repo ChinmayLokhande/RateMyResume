@@ -11,8 +11,11 @@ export function NavBar() {
 
   const links: { href: string; label: string }[] = [];
   if (roles.includes("user")) {
-    links.push({ href: "/resumes", label: "Resumes" }, { href: "/upload", label: "Upload" });
-  }
+    links.push(
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/resumes", label: "Resumes" },
+      { href: "/upload", label: "Upload" },
+    );  }
   if (roles.includes("admin")) links.push({ href: "/admin/users", label: "Users" });
 
   return (

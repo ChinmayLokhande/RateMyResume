@@ -24,3 +24,11 @@ export type CreateUserInput = {
   role: "user" | "admin";
   temporary_password: string;
 };
+
+export type DashboardStats = {
+  total: number;
+  completed: number;
+  in_progress: number;
+  failed: number;
+  recent: ResumeSummary[];
+};

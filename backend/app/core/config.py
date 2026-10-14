@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 10 * 1024 * 1024
     max_bulk_files: int = 20
 
+    # Redis cache (a separate Redis database from the Celery broker)
+    cache_enabled: bool = True
+    redis_cache_db: int = 1
+    dashboard_cache_ttl_seconds: int = 30
+    analysis_cache_ttl_seconds: int = 600
+
     # Local LLM (set LLM_ENABLED=false in .env for regex-only mode)
     llm_enabled: bool = True
     ollama_base_url: str = "http://localhost:11434"

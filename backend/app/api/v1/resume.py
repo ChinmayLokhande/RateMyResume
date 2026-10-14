@@ -2,6 +2,8 @@ import math
 import uuid
 from typing import Literal
 
+from app.services.cache_invalidation import invalidate_analysis, invalidate_dashboard
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -45,6 +47,7 @@ def _store(db: Session, owner_id: uuid.UUID, upload: UploadFile) -> uuid.UUID:
     resume_id, job_id = ingest_resume(
         db, get_storage(), owner_id, clean_filename(upload.filename), data
     )
+    invalidate_dashboard(owner_id)  # the counts just changed
     enqueue_extraction(job_id)  # after the commit, so the worker always finds the rows
     return resume_id
 
@@ -171,9 +174,9 @@ def retry_resume(
         raise NOT_FOUND
     except RetryNotAllowed as exc:
         raise HTTPException(status_code=409, detail=str(exc))
+    invalidate_dashboard(profile.id)
     enqueue_extraction(job_id)
     return ResumeStatus.model_validate(get_owned_resume(db, profile.id, resume_id))
-
 
 @router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_resume(
@@ -186,4 +189,6 @@ def remove_resume(
         delete_resume(db, get_storage(), profile.id, resume_id)
     except ResumeNotFound:
         raise NOT_FOUND
+    invalidate_dashboard(profile.id)
+    invalidate_analysis(profile.id, resume_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
