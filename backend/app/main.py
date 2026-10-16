@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.v1 import admin, analysis, dashboard, me, resume
+from app.api.v1 import admin, analysis, dashboard, job_matches, me, resume
 from app.core.config import get_settings
 from app.core.middleware import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from app.db.session import engine
@@ -42,6 +42,7 @@ app.add_middleware(
 app.include_router(me.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(resume.router, prefix="/api/v1")
+app.include_router(job_matches.router, prefix="/api/v1")
 app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 
