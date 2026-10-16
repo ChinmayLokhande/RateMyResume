@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     llm_enabled: bool = True
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:3b"
-    ollama_timeout_seconds: float = 120.0
+    ollama_timeout_seconds: float = 600.0
 
     @property
     def database_url(self) -> URL:

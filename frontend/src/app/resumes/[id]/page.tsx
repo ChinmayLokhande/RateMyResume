@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, Mail, MapPin, Phone, ScanText, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, Mail, MapPin, Phone, RefreshCw, ScanText, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
@@ -8,8 +8,8 @@ import { ScoreRing } from "@/components/ScoreRing";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Avatar, Button, Card, Skeleton } from "@/components/ui";
 import { ApiError } from "@/lib/api";
-import { analyzeResume, getAnalysis, getResume } from "@/lib/resumes";
-import type { AnalysisResponse, ResumeDetail } from "@/types/api";
+import { analyzeResume, getAnalysis, getJobMatches, getResume, refreshJobMatches } from "@/lib/resumes";
+import type { AnalysisResponse, JobMatchItem, ResumeDetail } from "@/types/api";
 
 const ACTIVE = ["queued", "processing"];
 
@@ -73,6 +73,11 @@ export default function ResumeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const [jobMatches, setJobMatches] = useState<JobMatchItem[]>([]);
+  const [jobMatchesLoading, setJobMatchesLoading] = useState(false);
+  const [jobMatchesError, setJobMatchesError] = useState<string | null>(null);
+  const [jobMatchesReady, setJobMatchesReady] = useState(false);
+
   const load = useCallback(async () => {
     try {
       const detail = await getResume(id);
@@ -94,6 +99,43 @@ export default function ResumeDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!resume || resume.extraction_status !== "completed" || jobMatchesReady) return;
+    let cancelled = false;
+    setJobMatchesLoading(true);
+    getJobMatches(id)
+      .then((r) => {
+        if (!cancelled) {
+          setJobMatches(r.results);
+          setJobMatchesError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setJobMatchesError(describeError(err));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setJobMatchesLoading(false);
+          setJobMatchesReady(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, resume, jobMatchesReady]);
+
+  async function recalculateJobMatches() {
+    setJobMatchesLoading(true);
+    setJobMatchesError(null);
+    try {
+      setJobMatches((await refreshJobMatches(id)).results);
+    } catch (err) {
+      setJobMatchesError(describeError(err));
+    } finally {
+      setJobMatchesLoading(false);
+    }
+  }
 
   const active =
     resume !== null &&
@@ -310,6 +352,85 @@ export default function ResumeDetailPage() {
                 </p>
               </>
             )}
+          </Card>
+
+          <Card className="space-y-5 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <BriefcaseBusiness size={18} className="text-accent" /> Best Matching Jobs
+              </h2>
+              <Button
+                variant="secondary"
+                onClick={recalculateJobMatches}
+                disabled={jobMatchesLoading || resume.extraction_status !== "completed"}
+              >
+                <RefreshCw size={14} className={jobMatchesLoading ? "animate-spin" : ""} />
+                {jobMatchesLoading ? "Checking matches…" : "Refresh matches"}
+              </Button>
+            </div>
+            {resume.extraction_status !== "completed" && (
+              <p className="text-sm text-muted">
+                {resume.extraction_status === "failed"
+                  ? "Resume text extraction failed, so job matching is unavailable."
+                  : "Job matching will be available once resume text extraction completes."}
+              </p>
+            )}
+            {jobMatchesLoading && jobMatches.length === 0 && (
+              <p className="text-sm text-muted">Comparing the resume with job descriptions…</p>
+            )}
+            {jobMatchesError && (
+              <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+                <p>{jobMatchesError}</p>
+                <p className="mt-1 text-xs">Your resume analysis and other details are still available.</p>
+              </div>
+            )}
+            {jobMatchesReady && !jobMatchesLoading && !jobMatchesError && jobMatches.length === 0 && (
+              <p className="text-sm text-muted">
+                No matches returned. Make sure the job descriptions are seeded.
+              </p>
+            )}
+            {jobMatches.map((m, i) => (
+              <div key={m.job_id} className="rounded-xl border border-black/[0.07] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Match #{i + 1}</p>
+                    <h3 className="mt-1 font-semibold">{m.job_title}</h3>
+                  </div>
+                  <span className="text-xl font-semibold tabular-nums text-accent">{m.fit_percentage}%</span>
+                </div>
+                <div
+                  className="mt-3 h-2 overflow-hidden rounded-full bg-black/[0.06]"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={m.fit_percentage}
+                >
+                  <div className="h-full rounded-full bg-accent" style={{ width: `${m.fit_percentage}%` }} />
+                </div>
+                <p className="mt-3 text-sm">{m.match_summary}</p>
+                {m.matching_skills.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold text-muted">Matching skills</p>
+                    <Chips items={m.matching_skills} />
+                  </div>
+                )}
+                {m.missing_required_skills.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold text-muted">Required skills not found</p>
+                    <Chips items={m.missing_required_skills} />
+                  </div>
+                )}
+                {m.relevant_evidence.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold text-muted">Evidence</p>
+                    <Bullets items={m.relevant_evidence} />
+                  </div>
+                )}
+              </div>
+            ))}
+            <p className="text-xs text-muted">
+              Fit % estimates keyword alignment with the extracted resume text, not hiring outcomes.
+            </p>
           </Card>
 
           <Card className="p-6">

@@ -1,0 +1,72 @@
+[
+  {
+    "username": "loadtest1",
+    "login_s": 0.09354008400009661,
+    "upload_s": 0.049264750000020285,
+    "extraction_s": 108.62207841700001,
+    "analysis_s": 375.02138037500004,
+    "jd_match_s": 0.02647729199998139,
+    "score": 88,
+    "top_match": "Full Stack Developer (56%)",
+    "resume_id": "b8e77455-79ae-41fe-923a-3344acc9534c",
+    "error": null,
+    "notes": [],
+    "http_errors": {}
+  },
+  {
+    "username": "loadtest2",
+    "login_s": 0.08526133399982427,
+    "upload_s": 0.04999941700020827,
+    "extraction_s": 140.79955387500013,
+    "analysis_s": 383.05176370900017,
+    "jd_match_s": 0.027310375000070053,
+    "score": 88,
+    "top_match": "Full Stack Developer (56%)",
+    "resume_id": "6ff60f85-9bb7-4d97-b51c-febcc29a6918",
+    "error": null,
+    "notes": [],
+    "http_errors": {}
+  },
+  {
+    "username": "loadtest3",
+    "login_s": 0.08207662500012702,
+    "upload_s": 0.04849820799995541,
+    "extraction_s": 154.8724031249999,
+    "analysis_s": 435.22330216699993,
+    "jd_match_s": 0.0283135829999992,
+    "score": 88,
+    "top_match": "Full Stack Developer (56%)",
+    "resume_id": "571cacc0-8eac-468a-a385-ec3d3e97b8b1",
+    "error": null,
+    "notes": [],
+    "http_errors": {}
+  },
+  {
+    "username": "loadtest4",
+    "login_s": 0.07229491599991889,
+    "upload_s": 0.046629040999960125,
+    "extraction_s": 50.30924849999997,
+    "analysis_s": 263.4708260409998,
+    "jd_match_s": 0.026600958000017272,
+    "score": 88,
+    "top_match": "Full Stack Developer (56%)",
+    "resume_id": "2ef6dfd3-c4cc-4770-a271-fd7eda137f34",
+    "error": null,
+    "notes": [],
+    "http_errors": {}
+  },
+  {
+    "username": "loadtest5",
+    "login_s": 0.06529370800012657,
+    "upload_s": 0.04804029199999604,
+    "extraction_s": 98.56749937500012,
+    "analysis_s": 271.50939000000017,
+    "jd_match_s": 0.02776237500006573,
+    "score": 88,
+    "top_match": "Full Stack Developer (56%)",
+    "resume_id": "3c51226e-144c-4217-98e0-aa76f9dde0c3",
+    "error": null,
+    "notes": [],
+    "http_errors": {}
+  }
+]

@@ -32,3 +32,20 @@ export type DashboardStats = {
   failed: number;
   recent: ResumeSummary[];
 };
+
+export type JobMatchItem = {
+  job_id: string;
+  job_title: string;
+  fit_percentage: number;
+  matching_skills: string[];
+  missing_required_skills: string[];
+  relevant_evidence: string[];
+  match_summary: string;
+  calculated_at: string | null;
+};
+
+export type JobMatchesResponse = {
+  resume_id: string;
+  scoring_version: string;
+  results: JobMatchItem[];
+};

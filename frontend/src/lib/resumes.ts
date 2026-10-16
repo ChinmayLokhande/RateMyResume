@@ -6,6 +6,7 @@ import type {
   ResumeListResponse,
   ResumeStatus,
   UploadItemResult,
+  JobMatchesResponse,
 } from "@/types/api";
 
 export function listResumes(query: string): Promise<ResumeListResponse> {
@@ -56,4 +57,12 @@ export async function uploadResumes(files: File[]): Promise<UploadItemResult[]> 
   files.forEach((file) => body.append("files", file));
   const response = await apiFetch<BulkUploadResponse>("/resumes/bulk", { method: "POST", body });
   return response.results;
+}
+
+export function getJobMatches(id: string): Promise<JobMatchesResponse> {
+  return apiFetch<JobMatchesResponse>(`/resumes/${id}/job-matches`);
+}
+
+export function refreshJobMatches(id: string): Promise<JobMatchesResponse> {
+  return apiFetch<JobMatchesResponse>(`/resumes/${id}/job-matches`, { method: "POST" });
 }
